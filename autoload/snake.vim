@@ -15,6 +15,19 @@ let s:game = {
       \   'snake': {},
       \ }
 
+function! s:game.IsSnakeBuffer() abort
+  return get(b:, 'is_snake_game', v:false)
+endfunction
+
+function! s:game.ScheduleNextTick() abort dict
+  if !l:self.IsSnakeBuffer()
+    return
+  endif
+
+  let l:TickFn = function(l:self.RenderTick, [], l:self)
+  call timer_start(1000, l:TickFn)
+endfunction
+
 function! s:game.Create() abort dict
   let l:copy = deepcopy(s:game)
   let g:game = l:copy
@@ -24,6 +37,7 @@ function! s:game.Create() abort dict
 
   call l:copy.PlaceSnake()
   call l:copy.Render()
+  call l:copy.ScheduleNextTick()
 
   return l:copy
 endfunction
@@ -88,6 +102,10 @@ function! s:game.PlaceSnake() abort dict
 endfunction
 
 function! s:game.Render() abort dict
+  if !l:self.IsSnakeBuffer()
+    return
+  endif
+
   let l:col = 1
 
   while l:col <= l:self.dimensions.height
@@ -99,10 +117,13 @@ endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
   call l:self.Render()
+  call l:self.ScheduleNextTick()
 endfunction
 
 function! snake#init_game() abort
   tabnew Snake
+
+  let b:is_snake_game = v:true
 
   setlocal nowriteany nobuflisted nonumber listchars=
   setlocal buftype=nowrite bufhidden=delete signcolumn=no
