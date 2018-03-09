@@ -7,7 +7,12 @@ endfunction
 
 " A template for every game.
 let s:game = {
-      \   'directions': { 'LEFT': -1, 'RIGHT': 1 },
+      \   'directions': {
+      \     'RIGHT': 'RIGHT',
+      \     'LEFT': 'LEFT',
+      \     'DOWN': 'DOWN',
+      \     'UP': 'UP',
+      \   },
       \   'initial_snake_size': 5,
       \   'direction': v:null,
       \   'dimensions': {},
@@ -20,12 +25,8 @@ function! s:game.IsSnakeBuffer() abort
 endfunction
 
 function! s:game.ScheduleNextTick() abort dict
-  if !l:self.IsSnakeBuffer()
-    return
-  endif
-
   let l:TickFn = function(l:self.RenderTick, [], l:self)
-  call timer_start(1000, l:TickFn)
+  call timer_start(500, l:TickFn)
 endfunction
 
 function! s:game.Create() abort dict
@@ -80,13 +81,14 @@ function! s:game.GetSafeSnakeDirection(row, col) abort dict
 endfunction
 
 function! s:game.FillSnake(row, col) abort dict
-  let l:direction = l:self.direction
-  let l:target = l:self.initial_snake_size * l:direction + a:col
+  let l:is_moving_left = l:self.direction is# l:self.directions.LEFT
+  let l:multiplier = l:is_moving_left ? -1 : 1
+  let l:target = l:self.initial_snake_size * l:multiplier + a:col
   let l:index = a:col
 
   while l:index < l:target
     call l:self.AddToSnakeSize(a:row, l:index)
-    let l:index += l:direction
+    let l:index += l:multiplier
   endwhile
 endfunction
 
@@ -101,11 +103,32 @@ function! s:game.PlaceSnake() abort dict
   call l:self.FillSnake(l:row, l:col)
 endfunction
 
-function! s:game.Render() abort dict
-  if !l:self.IsSnakeBuffer()
-    return
+function! s:game.GetNextSnakePosition() abort dict
+  let l:last_position = l:self.history[-1]
+  let l:next = { 'row': l:last_position.row, 'col': l:last_position.col }
+
+  if l:self.direction is# l:self.directions.UP
+    let l:next.row -= 1
+  elseif l:self.direction is# l:self.directions.DOWN
+    let l:next.row += 1
+  elseif l:self.direction is# l:self.directions.LEFT
+    let l:next.col -= 1
+  elseif l:self.direction is# l:self.directions.RIGHT
+    let l:next.col += 1
   endif
 
+  return l:next
+endfunction
+
+function! s:game.MoveSnake() abort dict
+  let l:oldest_position = remove(l:self.history, 0)
+  call remove(l:self.snake[l:oldest_position.row], l:oldest_position.col)
+
+  let l:next_position = l:self.GetNextSnakePosition()
+  call l:self.AddToSnakeSize(l:next_position.row, l:next_position.col)
+endfunction
+
+function! s:game.Render() abort dict
   let l:col = 1
 
   while l:col <= l:self.dimensions.height
@@ -116,6 +139,12 @@ function! s:game.Render() abort dict
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
+  " If the buffer is closed or not focused.
+  if !l:self.IsSnakeBuffer()
+    return
+  endif
+
+  call l:self.MoveSnake()
   call l:self.Render()
   call l:self.ScheduleNextTick()
 endfunction
