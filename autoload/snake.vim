@@ -7,9 +7,10 @@ endfunction
 
 " A template for every game.
 let s:game = {
+      \   'objective': { 'row': v:null, 'col': v:null },
       \   'axis_types': {
+      \     'HORIZONTAL': 'HORIZONTAL',
       \     'VERTICAL': 'VERTICAL',
-      \     'HORIZONTAL': 'HORIZONTAL'
       \   },
       \   'directions': {
       \     'RIGHT': 'RIGHT',
@@ -42,6 +43,7 @@ function! s:game.Create() abort dict
 
   call l:copy.AddMotionListeners()
   call l:copy.PlaceSnake()
+  call l:copy.PlaceObjective()
   call l:copy.Render()
   call l:copy.ScheduleNextTick()
 
@@ -74,7 +76,7 @@ endfunction
 function! s:game.ChangeDirection(direction) abort dict
   let l:axis = l:self.GetDirectionAxis(a:direction)
 
-  " Prevent up -> down, left -> right sort of motions.
+  " Prevent 180 degree turns.
   if l:axis is# l:self.GetDirectionAxis(l:self.direction)
     return
   endif
@@ -88,7 +90,17 @@ function! s:game.GetLine(index) abort dict
   let l:col = 1
   let l:line = ''
   while l:col <= l:self.dimensions.width
-    let l:char = has_key(l:points, l:col) ? '#' : ' '
+    let l:is_objective = a:index == l:self.objective.row
+          \ && l:col == l:self.objective.col
+
+    if l:is_objective
+      let l:char = '*'
+    elseif has_key(l:points, l:col)
+      let l:char = '#'
+    else
+      let l:char = ' '
+    endif
+
     let l:line .= l:char
     let l:col += 1
   endwhile
@@ -131,15 +143,32 @@ function! s:game.FillSnake(row, col) abort dict
   endwhile
 endfunction
 
-function! s:game.PlaceSnake() abort dict
+function! s:game.GetRandomCoords() abort dict
   let l:w_seed = s:get_random_number()
   let l:h_seed = s:get_random_number()
 
   let l:row = float2nr(l:h_seed * l:self.dimensions.height) + 1
   let l:col = float2nr(l:w_seed * l:self.dimensions.width) + 1
 
-  let l:self.direction = l:self.GetSafeSnakeDirection(l:col, l:row)
-  call l:self.FillSnake(l:row, l:col)
+  return { 'row': l:row, 'col': l:col }
+endfunction
+
+function! s:game.PlaceSnake() abort dict
+  let l:coords = l:self.GetRandomCoords()
+
+  let l:self.direction = l:self.GetSafeSnakeDirection(l:coords.col, l:coords.row)
+  call l:self.FillSnake(l:coords.row, l:coords.col)
+endfunction
+
+function! s:game.PlaceObjective() abort dict
+  let l:coords = l:self.GetRandomCoords()
+
+  " If it intersects with the snake, try again.
+  if l:self.HasCollision(l:coords)
+    return l:self.PlaceObjective()
+  endif
+
+  let l:self.objective = l:coords
 endfunction
 
 function! s:game.GetNextSnakePosition() abort dict
@@ -168,13 +197,17 @@ endfunction
 function! s:game.Render() abort dict
   let l:col = 1
 
-  setlocal modifiable
+
   while l:col <= l:self.dimensions.height
     let l:line = l:self.GetLine(l:col)
+
+    setlocal modifiable
     call setline(l:col, l:line)
+    setlocal nomodifiable
+
     let l:col += 1
   endwhile
-  setlocal nomodifiable
+
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
