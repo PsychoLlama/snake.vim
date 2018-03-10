@@ -188,9 +188,12 @@ function! s:game.GetNextSnakePosition() abort dict
   return l:next
 endfunction
 
-function! s:game.MoveSnake(next_position) abort dict
-  let l:oldest_position = remove(l:self.history, 0)
-  call remove(l:self.snake[l:oldest_position.row], l:oldest_position.col)
+function! s:game.MoveSnake(next_position, remove_tail) abort dict
+  if a:remove_tail
+    let l:oldest_position = remove(l:self.history, 0)
+    call remove(l:self.snake[l:oldest_position.row], l:oldest_position.col)
+  endif
+
   call l:self.AddToSnakeSize(a:next_position.row, a:next_position.col)
 endfunction
 
@@ -218,17 +221,18 @@ function! s:game.RenderTick(timer_id) abort dict
 
   let l:next_position = l:self.GetNextSnakePosition()
 
-  " Ran off the map?
-  if l:self.IsOutOfBounds(l:next_position)
+  " Ran off the map or into itself?
+  if l:self.IsOutOfBounds(l:next_position) || l:self.HasCollision(l:next_position)
     return
   endif
 
-  " Ran into itself?
-  if l:self.HasCollision(l:next_position)
-    return
+  let l:remove_tail = v:true
+  if l:self.IsObjective(l:next_position)
+    call l:self.PlaceObjective()
+    let l:remove_tail = v:false
   endif
 
-  call l:self.MoveSnake(l:next_position)
+  call l:self.MoveSnake(l:next_position, l:remove_tail)
   call l:self.Render()
   call l:self.ScheduleNextTick()
 endfunction
@@ -255,6 +259,12 @@ function! s:game.HasCollision(position) abort dict
   endif
 
   return v:true
+endfunction
+
+function! s:game.IsObjective(coord) abort dict
+  let l:obj = l:self.objective
+
+  return a:coord.row == l:obj.row && a:coord.col == l:obj.col
 endfunction
 
 function! snake#init_game() abort
