@@ -18,6 +18,7 @@ let s:game = {
       \     'DOWN': 'DOWN',
       \     'UP': 'UP',
       \   },
+      \   'direction_change': v:null,
       \   'initial_snake_size': 5,
       \   'direction': v:null,
       \   'dimensions': {},
@@ -31,7 +32,7 @@ endfunction
 
 function! s:game.ScheduleNextTick() abort dict
   let l:TickFn = function(l:self.RenderTick, [], l:self)
-  call timer_start(250, l:TickFn)
+  call timer_start(75, l:TickFn)
 endfunction
 
 function! s:game.Create() abort dict
@@ -81,7 +82,7 @@ function! s:game.ChangeDirection(direction) abort dict
     return
   endif
 
-  let l:self.direction = a:direction
+  let l:self.direction_change = a:direction
 endfunction
 
 function! s:game.GetLine(index) abort dict
@@ -217,6 +218,13 @@ function! s:game.RenderTick(timer_id) abort dict
   " If the buffer is closed or not focused.
   if !l:self.IsSnakeBuffer()
     return
+  endif
+
+  " Apply the direction change (prevents two
+  " immediate 90deg turns within the same frame).
+  if l:self.direction_change != v:null
+    let l:self.direction = l:self.direction_change
+    let l:self.direction_change = v:null
   endif
 
   let l:next_position = l:self.GetNextSnakePosition()
