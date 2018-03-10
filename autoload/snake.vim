@@ -7,6 +7,10 @@ endfunction
 
 " A template for every game.
 let s:game = {
+      \   'axis_types': {
+      \     'VERTICAL': 'VERTICAL',
+      \     'HORIZONTAL': 'HORIZONTAL'
+      \   },
       \   'directions': {
       \     'RIGHT': 'RIGHT',
       \     'LEFT': 'LEFT',
@@ -26,7 +30,7 @@ endfunction
 
 function! s:game.ScheduleNextTick() abort dict
   let l:TickFn = function(l:self.RenderTick, [], l:self)
-  call timer_start(500, l:TickFn)
+  call timer_start(250, l:TickFn)
 endfunction
 
 function! s:game.Create() abort dict
@@ -36,11 +40,46 @@ function! s:game.Create() abort dict
   let l:copy.dimensions.height = winheight('.')
   let l:copy.dimensions.width = winwidth('.')
 
+  call l:copy.AddMotionListeners()
   call l:copy.PlaceSnake()
   call l:copy.Render()
   call l:copy.ScheduleNextTick()
 
   return l:copy
+endfunction
+
+function! s:game.AddMotionListeners() abort dict
+  let l:dir = l:self.directions
+  let b:GoUp = function(l:self.ChangeDirection, [l:dir.UP], l:self)
+  let b:GoDown = function(l:self.ChangeDirection, [l:dir.DOWN], l:self)
+  let b:GoLeft = function(l:self.ChangeDirection, [l:dir.LEFT], l:self)
+  let b:GoRight = function(l:self.ChangeDirection, [l:dir.RIGHT], l:self)
+
+  nnoremap <silent><buffer>h :call b:GoLeft()<cr>
+  nnoremap <silent><buffer>j :call b:GoDown()<cr>
+  nnoremap <silent><buffer>k :call b:GoUp()<cr>
+  nnoremap <silent><buffer>l :call b:GoRight()<cr>
+endfunction
+
+" Vertical or horizontal?
+function! s:game.GetDirectionAxis(direction) abort dict
+  let l:dirs = l:self.directions
+  if a:direction is# l:dirs.UP || a:direction is# l:dirs.DOWN
+    return l:self.axis_types.VERTICAL
+  elseif a:direction is# l:dirs.LEFT || a:direction is# l:dirs.RIGHT
+    return l:self.axis_types.HORIZONTAL
+  endif
+endfunction
+
+function! s:game.ChangeDirection(direction) abort dict
+  let l:axis = l:self.GetDirectionAxis(a:direction)
+
+  " Prevent up -> down, left -> right sort of motions.
+  if l:axis is# l:self.GetDirectionAxis(l:self.direction)
+    return
+  endif
+
+  let l:self.direction = a:direction
 endfunction
 
 function! s:game.GetLine(index) abort dict
@@ -120,22 +159,22 @@ function! s:game.GetNextSnakePosition() abort dict
   return l:next
 endfunction
 
-function! s:game.MoveSnake() abort dict
+function! s:game.MoveSnake(next_position) abort dict
   let l:oldest_position = remove(l:self.history, 0)
   call remove(l:self.snake[l:oldest_position.row], l:oldest_position.col)
-
-  let l:next_position = l:self.GetNextSnakePosition()
-  call l:self.AddToSnakeSize(l:next_position.row, l:next_position.col)
+  call l:self.AddToSnakeSize(a:next_position.row, a:next_position.col)
 endfunction
 
 function! s:game.Render() abort dict
   let l:col = 1
 
+  setlocal modifiable
   while l:col <= l:self.dimensions.height
     let l:line = l:self.GetLine(l:col)
     call setline(l:col, l:line)
     let l:col += 1
   endwhile
+  setlocal nomodifiable
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
@@ -144,9 +183,45 @@ function! s:game.RenderTick(timer_id) abort dict
     return
   endif
 
-  call l:self.MoveSnake()
+  let l:next_position = l:self.GetNextSnakePosition()
+
+  " Ran off the map?
+  if l:self.IsOutOfBounds(l:next_position)
+    return
+  endif
+
+  " Ran into itself?
+  if l:self.HasCollision(l:next_position)
+    return
+  endif
+
+  call l:self.MoveSnake(l:next_position)
   call l:self.Render()
   call l:self.ScheduleNextTick()
+endfunction
+
+function! s:game.IsOutOfBounds(head) abort dict
+  if a:head.row < 1 || a:head.row >= l:self.dimensions.height + 1
+    return v:true
+  endif
+
+  if a:head.col < 1 || a:head.col >= l:self.dimensions.width + 1
+    return v:true
+  endif
+
+  return v:false
+endfunction
+
+function! s:game.HasCollision(position) abort dict
+  if !has_key(l:self.snake, a:position.row)
+    return v:false
+  endif
+
+  if !has_key(l:self.snake[a:position.row], a:position.col)
+    return v:false
+  endif
+
+  return v:true
 endfunction
 
 function! snake#init_game() abort
@@ -154,7 +229,7 @@ function! snake#init_game() abort
 
   let b:is_snake_game = v:true
 
-  setlocal nowriteany nobuflisted nonumber listchars=
+  setlocal nomodifiable nowriteany nobuflisted nonumber listchars=
   setlocal buftype=nowrite bufhidden=delete signcolumn=no
 
   call s:game.Create()
