@@ -62,6 +62,11 @@ function! s:game.AddMotionListeners() abort dict
   nnoremap <silent><buffer>j :call b:GoDown()<cr>
   nnoremap <silent><buffer>k :call b:GoUp()<cr>
   nnoremap <silent><buffer>l :call b:GoRight()<cr>
+
+  nnoremap <silent><buffer><Left> :call b:GoLeft()<cr>
+  nnoremap <silent><buffer><Down> :call b:GoDown()<cr>
+  nnoremap <silent><buffer><Up> :call b:GoUp()<cr>
+  nnoremap <silent><buffer><Right> :call b:GoRight()<cr>
 endfunction
 
 " Vertical or horizontal?
