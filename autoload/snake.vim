@@ -141,18 +141,6 @@ function! s:game.AddToSnakeSize(row, col) abort dict
   call l:self.HighlightSnakeHead(l:entry, v:false)
 endfunction
 
-function! s:game.GetSafeSnakeDirection(row, col) abort dict
-  let l:size = l:self.initial_snake_size
-  let l:buffer = l:size + 2
-
-  " Too close to the side
-  if a:col + l:buffer >= l:self.dimensions.width
-    return l:self.directions.LEFT
-  endif
-
-  return l:self.directions.RIGHT
-endfunction
-
 function! s:game.FillSnake(row, col) abort dict
   let l:is_moving_left = l:self.direction is# l:self.directions.LEFT
   let l:multiplier = l:is_moving_left ? -1 : 1
@@ -176,10 +164,8 @@ function! s:game.GetRandomCoords() abort dict
 endfunction
 
 function! s:game.PlaceSnake() abort dict
-  let l:coords = l:self.GetRandomCoords()
-
-  let l:self.direction = l:self.GetSafeSnakeDirection(l:coords.col, l:coords.row)
-  call l:self.FillSnake(l:coords.row, l:coords.col)
+  let l:self.direction = l:self.directions.RIGHT
+  call l:self.FillSnake(3, 5)
 endfunction
 
 function! s:game.PlaceObjective() abort dict
