@@ -46,13 +46,42 @@ function! s:game.Create() abort dict
   let g:game = l:copy
 
   call l:copy.AddMotionListeners()
-  call l:copy.PlaceSnake()
-  call l:copy.PlaceObjective()
-  call l:copy.Render()
-  call l:copy.ScheduleNextTick()
-  let l:copy.game_started_timestamp = localtime()
+  call l:copy.InitObjects()
+  call l:copy.BeginPlayingGame()
 
   return l:copy
+endfunction
+
+function! s:game.InitObjects() abort dict
+  call l:self.PlaceSnake()
+  call l:self.PlaceObjective()
+endfunction
+
+function! s:game.BeginPlayingGame() abort dict
+  call l:self.Render()
+  call l:self.ScheduleNextTick()
+  let l:self.game_started_timestamp = localtime()
+endfunction
+
+function! s:game.ClearScreen() abort dict
+  setlocal modifiable
+  % delete
+  setlocal nomodifiable
+endfunction
+
+function! s:game.RestartGame() abort dict
+  " Cleanup.
+  nunmap <buffer>R
+  call matchdelete(l:self.head_highlight_id)
+
+  " Reset everything.
+  let l:initial_state = deepcopy(s:game)
+  call extend(l:self, l:initial_state, 'force')
+
+  " Begin the game!
+  call l:self.ClearScreen()
+  call l:self.InitObjects()
+  call l:self.BeginPlayingGame()
 endfunction
 
 function! s:game.AddMotionListeners() abort dict
@@ -225,10 +254,11 @@ endfunction
 
 function! s:game.RenderGameStatus() abort dict
   let l:points = len(l:self.history) - l:self.initial_snake_size
-  let l:points .= l:points is 1 ? ' point' : ' points'
 
   if l:self.game_ended
     let l:time = l:self.GetElapsedTimeString()
+    let l:points .= l:points is 1 ? ' point' : ' points'
+
     let l:msg = ['Game over! You got ' . l:points . ' and survived for ' . l:time . '.']
     return l:msg + ['Press "R" to restart.']
   endif
@@ -247,14 +277,23 @@ function! s:game.Render() abort dict
   let l:lines += [l:bottom_border]
   let l:lines += l:self.RenderGameStatus()
 
+  " A spot for the cursor.
+  let l:lines += ['']
+
   setlocal modifiable
   call setline(1, l:lines)
   setlocal nomodifiable
+
+  " Someday I'll figure out how to hide this thing...
+  call cursor(line('$'), col('$'))
 endfunction
 
 function! s:game.SetGameOver() abort dict
   let l:self.game_ended = v:true
   call l:self.Render()
+
+  let b:RestartGame = function(l:self.RestartGame, [], l:self)
+  nnoremap <silent><buffer>R :call b:RestartGame()<cr>
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
@@ -326,8 +365,12 @@ function! snake#init_game() abort
 
   let b:is_snake_game = v:true
 
-  setlocal nomodifiable nowriteany nobuflisted nonumber listchars=
-  setlocal buftype=nowrite bufhidden=delete signcolumn=no
+  setlocal nomodifiable nowriteany nobuflisted nonumber
+  setlocal buftype=nowrite bufhidden=delete listchars=
+
+  if has('signs')
+    setlocal signcolumn=no
+  endif
 
   call s:game.Create()
 endfunction
