@@ -18,6 +18,7 @@ let s:game = {
       \     'DOWN': 'DOWN',
       \     'UP': 'UP',
       \   },
+      \   'head_highlight_id': v:null,
       \   'direction_change': v:null,
       \   'initial_snake_size': 5,
       \   'direction': v:null,
@@ -114,6 +115,17 @@ function! s:game.GetLine(index) abort dict
   return l:line
 endfunction
 
+" Set the snake's head to a color.
+function! s:game.HighlightSnakeHead(position, has_collided) abort dict
+  if l:self.head_highlight_id
+    call matchdelete(l:self.head_highlight_id)
+  endif
+
+  let l:coords = [[a:position.row, a:position.col]]
+  let l:syn_group = a:has_collided ? 'snakeCollision' : 'snakeHead'
+  let l:self.head_highlight_id = matchaddpos(l:syn_group, l:coords)
+endfunction
+
 function! s:game.AddToSnakeSize(row, col) abort dict
   if !has_key(l:self.snake, a:row)
     let l:self.snake[a:row] = {}
@@ -123,6 +135,8 @@ function! s:game.AddToSnakeSize(row, col) abort dict
 
   let l:entry = { 'row': a:row, 'col': a:col }
   let l:self.history += [l:entry]
+
+  call l:self.HighlightSnakeHead(l:entry, v:false)
 endfunction
 
 function! s:game.GetSafeSnakeDirection(row, col) abort dict
@@ -216,7 +230,6 @@ function! s:game.Render() abort dict
 
     let l:col += 1
   endwhile
-
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
@@ -236,6 +249,7 @@ function! s:game.RenderTick(timer_id) abort dict
 
   " Ran off the map or into itself?
   if l:self.IsOutOfBounds(l:next_position) || l:self.HasCollision(l:next_position)
+    call l:self.HighlightSnakeHead(l:self.history[-1], v:true)
     return
   endif
 
@@ -282,6 +296,7 @@ endfunction
 
 function! snake#init_game() abort
   tabnew Snake
+  setfiletype snake
 
   let b:is_snake_game = v:true
 
