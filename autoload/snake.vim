@@ -18,9 +18,11 @@ let s:game = {
       \     'DOWN': 'DOWN',
       \     'UP': 'UP',
       \   },
+      \   'game_started_timestamp': v:null,
       \   'head_highlight_id': v:null,
       \   'direction_change': v:null,
       \   'initial_snake_size': 5,
+      \   'game_ended': v:false,
       \   'direction': v:null,
       \   'dimensions': {
       \     'height': 20,
@@ -48,6 +50,7 @@ function! s:game.Create() abort dict
   call l:copy.PlaceObjective()
   call l:copy.Render()
   call l:copy.ScheduleNextTick()
+  let l:copy.game_started_timestamp = localtime()
 
   return l:copy
 endfunction
@@ -205,6 +208,34 @@ function! s:game.MoveSnake(next_position, remove_tail) abort dict
   call l:self.AddToSnakeSize(a:next_position.row, a:next_position.col)
 endfunction
 
+function! s:game.GetElapsedTimeString() abort dict
+  let l:elapsed = localtime() - l:self.game_started_timestamp
+  let l:seconds = substitute(strftime('%S', l:elapsed), '\v^0', '', '')
+  let l:seconds .= l:seconds is# '1' ? ' second' : ' seconds'
+
+  let l:minutes = substitute(strftime('%M', l:elapsed), '\v^0', '', '')
+  let l:minutes .= l:minutes is# '1' ? ' minute' : ' minutes'
+
+  if l:elapsed < 60
+    return l:seconds
+  endif
+
+  return l:minutes . ', ' . l:seconds
+endfunction
+
+function! s:game.RenderGameStatus() abort dict
+  let l:points = len(l:self.history) - l:self.initial_snake_size
+  let l:points .= l:points is 1 ? ' point' : ' points'
+
+  if l:self.game_ended
+    let l:time = l:self.GetElapsedTimeString()
+    let l:msg = ['Game over! You got ' . l:points . ' and survived for ' . l:time . '.']
+    return l:msg + ['Press "R" to restart.']
+  endif
+
+  return ['Points: ' . l:points]
+endfunction
+
 function! s:game.Render() abort dict
   let l:lines = []
   while len(l:lines) < l:self.dimensions.height
@@ -214,10 +245,16 @@ function! s:game.Render() abort dict
 
   let l:bottom_border = join(map(range(l:self.dimensions.width + 1), "'-'"), '')
   let l:lines += [l:bottom_border]
+  let l:lines += l:self.RenderGameStatus()
 
   setlocal modifiable
   call setline(1, l:lines)
   setlocal nomodifiable
+endfunction
+
+function! s:game.SetGameOver() abort dict
+  let l:self.game_ended = v:true
+  call l:self.Render()
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
@@ -238,6 +275,7 @@ function! s:game.RenderTick(timer_id) abort dict
   " Ran off the map or into itself?
   if l:self.IsOutOfBounds(l:next_position) || l:self.HasCollision(l:next_position)
     call l:self.HighlightSnakeHead(l:self.history[-1], v:true)
+    call l:self.SetGameOver()
     return
   endif
 
