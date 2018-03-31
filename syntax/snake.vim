@@ -5,7 +5,8 @@ endif
 let b:current_syntax = 'snake'
 
 syntax match snakeBody '\v#'
-syntax match snakeObjective '\v*'
+syntax match snakeObjective '\v\*'
+syntax match snakeBorder '\v(-|\|)'
 
 highlight snakeObjective ctermfg=Green
 
@@ -13,4 +14,5 @@ highlight snakeObjective ctermfg=Green
 highlight snakeCollision ctermfg=DarkRed
 highlight snakeHead ctermfg=Cyan
 
+highlight link snakeBorder Comment
 highlight link snakeBody Comment

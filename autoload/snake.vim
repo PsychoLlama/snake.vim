@@ -22,7 +22,10 @@ let s:game = {
       \   'direction_change': v:null,
       \   'initial_snake_size': 5,
       \   'direction': v:null,
-      \   'dimensions': {},
+      \   'dimensions': {
+      \     'height': 20,
+      \     'width': 60,
+      \   },
       \   'history': [],
       \   'snake': {},
       \ }
@@ -39,9 +42,6 @@ endfunction
 function! s:game.Create() abort dict
   let l:copy = deepcopy(s:game)
   let g:game = l:copy
-
-  let l:copy.dimensions.height = winheight('.')
-  let l:copy.dimensions.width = winwidth('.')
 
   call l:copy.AddMotionListeners()
   call l:copy.PlaceSnake()
@@ -111,6 +111,8 @@ function! s:game.GetLine(index) abort dict
     let l:line .= l:char
     let l:col += 1
   endwhile
+
+  let l:line .= '|'
 
   return l:line
 endfunction
@@ -218,18 +220,18 @@ function! s:game.MoveSnake(next_position, remove_tail) abort dict
 endfunction
 
 function! s:game.Render() abort dict
-  let l:col = 1
-
-
-  while l:col <= l:self.dimensions.height
-    let l:line = l:self.GetLine(l:col)
-
-    setlocal modifiable
-    call setline(l:col, l:line)
-    setlocal nomodifiable
-
-    let l:col += 1
+  let l:lines = []
+  while len(l:lines) < l:self.dimensions.height
+    let l:col = len(l:lines) + 1
+    let l:lines += [l:self.GetLine(l:col)]
   endwhile
+
+  let l:bottom_border = join(map(range(l:self.dimensions.width + 1), "'-'"), '')
+  let l:lines += [l:bottom_border]
+
+  setlocal modifiable
+  call setline(1, l:lines)
+  setlocal nomodifiable
 endfunction
 
 function! s:game.RenderTick(timer_id) abort dict
