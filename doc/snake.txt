@@ -2,7 +2,6 @@ The classic *snake* game, but in your editor!
 
 Author: Jesse Gibson <Jesse_Gibson@me.com>
 Homepage: https://github.com/PsychoLlama/snake.vim
-Twitter: https://twitter.com/ReignOfLlama
 License: MIT
 
 ==============================================================================
