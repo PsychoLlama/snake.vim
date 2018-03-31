@@ -1,0 +1,42 @@
+The classic *snake* game, but in your editor!
+
+Author: Jesse Gibson <Jesse_Gibson@me.com>
+Homepage: https://github.com/PsychoLlama/snake.vim
+Twitter: https://twitter.com/ReignOfLlama
+License: MIT
+
+==============================================================================
+CONTENTS                                                             |snake-toc|
+
+  1. Commands ................................................. |snake-commands|
+  2. Compatibility .............................................. |snake-compat|
+
+==============================================================================
+COMMANDS                                                        *snake-commands*
+
+------------------------------------------------------------------------------
+*:Snake*
+
+Opens a new tab with the game running. Use `hjkl` or the arrow keys to direct
+the snake.
+
+The game objective is to eat little pellets as they appear on the board
+without running into yourself or the walls. There's no way to stop, and you
+gain size with every pellet you eat.
+
+It's a weird game.
+
+==============================================================================
+COMPATIBILITY                                                     *snake-compat*
+
+The render loop uses async jobs, which is an unsupported feature on vim 7.x or
+earlier.
+
+This program is developed and tested regularly in neovim, and occasionally I
+try it with vim 8.
+
+If you get strange error messages or find a bug, please let me know by posting
+an issue: https://github.com/PsychoLlama/snake.vim/issues/new
+
+==============================================================================
+ vim: ft=help:
