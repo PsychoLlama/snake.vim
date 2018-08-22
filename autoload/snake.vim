@@ -1,5 +1,5 @@
 " A number between 0 and 1
-function! s:get_random_number() abort
+function! s:GetRandomNumber() abort
   let l:max_number = 32767.0
   let l:rand = system('printf "$RANDOM"')
   return l:rand / l:max_number
@@ -186,8 +186,8 @@ function! s:game.FillSnake(row, col) abort dict
 endfunction
 
 function! s:game.GetRandomCoords() abort dict
-  let l:w_seed = s:get_random_number()
-  let l:h_seed = s:get_random_number()
+  let l:w_seed = s:GetRandomNumber()
+  let l:h_seed = s:GetRandomNumber()
 
   let l:row = float2nr(l:h_seed * l:self.dimensions.height) + 1
   let l:col = float2nr(l:w_seed * l:self.dimensions.width) + 1
@@ -359,12 +359,11 @@ function! s:game.IsObjective(coord) abort dict
   return a:coord.row == l:obj.row && a:coord.col == l:obj.col
 endfunction
 
-function! snake#init_game() abort
-  tabnew Snake
+function! snake#InitGame() abort
+  enew
   setfiletype snake
 
   let b:is_snake_game = v:true
-
   setlocal nomodifiable nowriteany nobuflisted nonumber
   setlocal buftype=nowrite bufhidden=delete listchars=
 
