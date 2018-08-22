@@ -9,6 +9,7 @@ CONTENTS                                                             |snake-toc|
 
   1. Commands ................................................. |snake-commands|
   2. Compatibility .............................................. |snake-compat|
+  3. Changelog ............................................... |snake-changelog|
 
 ==============================================================================
 COMMANDS                                                        *snake-commands*
@@ -36,6 +37,15 @@ try it with vim 8.
 
 If you get strange error messages or find a bug, please let me know by posting
 an issue: https://github.com/PsychoLlama/snake.vim/issues/new
+
+==============================================================================
+CHANGELOG                                                      *snake-changelog*
+
+0.1.0
+Initial release
+
+0.2.0
+Open snake in the current pane, not a new tab.
 
 ==============================================================================
  vim: ft=help:
