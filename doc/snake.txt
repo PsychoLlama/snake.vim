@@ -8,8 +8,9 @@ License: MIT
 CONTENTS                                                             |snake-toc|
 
   1. Commands ................................................. |snake-commands|
-  2. Compatibility .............................................. |snake-compat|
-  3. Changelog ............................................... |snake-changelog|
+  2. Mappings ................................................. |snake-mappings|
+  3. Compatibility .............................................. |snake-compat|
+  4. Changelog ............................................... |snake-changelog|
 
 ==============================================================================
 COMMANDS                                                        *snake-commands*
@@ -25,6 +26,14 @@ without running into yourself or the walls. There's no way to stop, and you
 gain size with every pellet you eat.
 
 It's a weird game.
+
+==============================================================================
+MAPPINGS                                                        *snake-mappings*
+
+  `hjkl`            Directs the snake
+  `<arrow keys>`    Same as `hjkl`, just not as fancy
+  `p`               Toggle pause (happens automatically when leaving the buffer)
+  `R`               Restarts the game (only works if the game ended)
 
 ==============================================================================
 COMPATIBILITY                                                     *snake-compat*

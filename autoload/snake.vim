@@ -24,6 +24,7 @@ let s:game = {
       \   'initial_snake_size': 5,
       \   'game_ended': v:false,
       \   'direction': v:null,
+      \   'game_id': v:null,
       \   'dimensions': {
       \     'height': 20,
       \     'width': 60,
@@ -32,8 +33,10 @@ let s:game = {
       \   'snake': {},
       \ }
 
-function! s:game.IsSnakeBuffer() abort
-  return get(b:, 'is_snake_game', v:false)
+function! s:game.IsSnakeBuffer(vars) abort
+  let l:id = get(a:vars, 'snake_game_id')
+
+  return l:self.game_id == l:id
 endfunction
 
 function! s:game.ScheduleNextTick() abort dict
@@ -41,9 +44,9 @@ function! s:game.ScheduleNextTick() abort dict
   call timer_start(75, l:TickFn)
 endfunction
 
-function! s:game.Create() abort dict
+function! s:game.Create(game_id) abort dict
   let l:copy = deepcopy(s:game)
-  let g:game = l:copy
+  let l:copy.game_id = a:game_id
 
   call l:copy.AddMotionListeners()
   call l:copy.InitObjects()
@@ -75,6 +78,7 @@ function! s:game.RestartGame() abort dict
   call matchdelete(l:self.head_highlight_id)
 
   " Reset everything.
+  let b:snake_paused = v:false
   let l:initial_state = deepcopy(s:game)
   call extend(l:self, l:initial_state, 'force')
 
@@ -90,11 +94,13 @@ function! s:game.AddMotionListeners() abort dict
   let b:GoDown = function(l:self.ChangeDirection, [l:dir.DOWN], l:self)
   let b:GoLeft = function(l:self.ChangeDirection, [l:dir.LEFT], l:self)
   let b:GoRight = function(l:self.ChangeDirection, [l:dir.RIGHT], l:self)
+  let b:TogglePlayState = function(l:self.TogglePlayState, [], l:self)
 
   nnoremap <silent><buffer>h :call b:GoLeft()<cr>
   nnoremap <silent><buffer>j :call b:GoDown()<cr>
   nnoremap <silent><buffer>k :call b:GoUp()<cr>
   nnoremap <silent><buffer>l :call b:GoRight()<cr>
+  nnoremap <silent><buffer>p :call b:TogglePlayState()<cr>
 
   nnoremap <silent><buffer><Left> :call b:GoLeft()<cr>
   nnoremap <silent><buffer><Down> :call b:GoDown()<cr>
@@ -121,6 +127,14 @@ function! s:game.ChangeDirection(direction) abort dict
   endif
 
   let l:self.direction_change = a:direction
+endfunction
+
+function! s:game.TogglePlayState() abort dict
+  let b:snake_paused = !b:snake_paused
+
+  if !b:snake_paused
+    call l:self.RenderTick(v:null)
+  endif
 endfunction
 
 function! s:game.GetLine(index) abort dict
@@ -296,9 +310,27 @@ function! s:game.SetGameOver() abort dict
   nnoremap <silent><buffer>R :call b:RestartGame()<cr>
 endfunction
 
+function! s:game.IsGamePaused() abort
+  return get(b:, 'snake_paused', v:true)
+endfunction
+
+function! s:game.PauseSnakeBuffer() abort dict
+  let l:buffers = getbufinfo()
+  call filter(l:buffers, { idx, buffer -> l:self.IsSnakeBuffer(buffer.variables) })
+
+  if len(l:buffers) > 0
+    let l:snake_buffer = l:buffers[0]
+    let l:snake_buffer.variables.snake_paused = v:true
+  endif
+endfunction
+
 function! s:game.RenderTick(timer_id) abort dict
-  " If the buffer is closed or not focused.
-  if !l:self.IsSnakeBuffer()
+  " If the buffer is closed or blurred
+  if !l:self.IsSnakeBuffer(b:)
+    call l:self.PauseSnakeBuffer()
+  endif
+
+  if l:self.IsGamePaused()
     return
   endif
 
@@ -363,7 +395,9 @@ function! snake#InitGame() abort
   enew
   setfiletype snake
 
-  let b:is_snake_game = v:true
+  let b:snake_game_id = localtime()
+  let b:snake_paused = v:false
+
   setlocal nomodifiable nowriteany nobuflisted nonumber
   setlocal buftype=nowrite bufhidden=delete listchars=
 
@@ -371,5 +405,5 @@ function! snake#InitGame() abort
     setlocal signcolumn=no
   endif
 
-  call s:game.Create()
+  call s:game.Create(b:snake_game_id)
 endfunction
